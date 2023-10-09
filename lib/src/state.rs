@@ -1,8 +1,6 @@
-use ic_cdk::export::{
-    candid::CandidType,
-    serde::{Deserialize, Serialize},
-    Principal,
-};
+use candid::{CandidType, Principal};
+use serde::{Deserialize, Serialize};
+
 use std::cell::RefCell;
 use std::collections::HashMap;
 
@@ -41,10 +39,10 @@ pub struct UserData {
     pub transactions: HashMap<u64, TransactionChainData>,
 }
 
-
 #[derive(CandidType, Deserialize, Debug, Clone, PartialEq, Default)]
 pub enum Environment {
-    #[default] Development,
+    #[default]
+    Development,
     Staging,
     Production,
 }
@@ -53,7 +51,7 @@ pub enum Environment {
 pub struct Config {
     pub env: Environment,
     pub key_name: String,
-    pub sign_cycles: u64 
+    pub sign_cycles: u64,
 }
 
 impl Default for Config {
@@ -63,33 +61,33 @@ impl Default for Config {
 }
 
 impl From<Environment> for Config {
-     fn from(env: Environment) -> Self {
+    fn from(env: Environment) -> Self {
         if env == Environment::Staging {
             Self {
                 env: Environment::Staging,
                 key_name: "test_key_1".to_string(),
-                sign_cycles: 10_000_000_000
+                sign_cycles: 10_000_000_000,
             }
-        }  else if env == Environment::Production {
+        } else if env == Environment::Production {
             Self {
                 env: Environment::Production,
                 key_name: "key_1".to_string(),
-                sign_cycles: 26_153_846_153
+                sign_cycles: 26_153_846_153,
             }
         } else {
             Self {
                 env: Environment::Development,
                 key_name: "dfx_test_key".to_string(),
-                sign_cycles: 0
+                sign_cycles: 0,
             }
         }
-     }
+    }
 }
 
 #[derive(Default, CandidType, Deserialize, Debug, Clone)]
 pub struct State {
     pub users: HashMap<Principal, UserData>,
-    pub config: Config
+    pub config: Config,
 }
 
 thread_local! {

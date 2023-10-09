@@ -1,5 +1,5 @@
 use easy_hasher::easy_hasher;
-use ic_cdk::export::Principal;
+use candid::Principal;
 use primitive_types::U256;
 
 pub fn get_derivation_path(caller: Principal) -> Vec<u8> {

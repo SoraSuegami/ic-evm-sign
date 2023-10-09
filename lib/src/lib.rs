@@ -1,22 +1,21 @@
 #[cfg(not(test))]
-use ic_cdk::api::time as ic_timestamp;
-#[cfg(not(test))]
 use ic_cdk::api::call::call_with_payment as ic_call;
-use ic_cdk::export::{
-    candid::CandidType,
-    serde::{Deserialize, Serialize},
-    Principal,
-};
+#[cfg(not(test))]
+use ic_cdk::api::time as ic_timestamp;
+
+use candid::{CandidType, Principal};
+use serde::{Deserialize, Serialize};
 #[cfg(test)]
 mod mocks;
 #[cfg(test)]
 use mocks::{ic_call, ic_timestamp};
 
 mod utils;
+use easy_hasher::easy_hasher;
+use hex;
+use primitive_types::U256;
 pub use utils::u64_to_u256;
 use utils::{get_address_from_public_key, get_derivation_path};
-
-use primitive_types::U256;
 
 mod ecdsa;
 use ecdsa::reply::*;
@@ -69,7 +68,7 @@ pub async fn create_address(principal_id: Principal) -> Result<CreateAddressResp
 
     let key_id = EcdsaKeyId {
         curve: EcdsaCurve::Secp256k1,
-        name: state.config.key_name
+        name: state.config.key_name,
     };
 
     let caller = get_derivation_path(principal_id);
@@ -84,7 +83,7 @@ pub async fn create_address(principal_id: Principal) -> Result<CreateAddressResp
         Principal::management_canister(),
         "ecdsa_public_key",
         (request,),
-        0 as u64
+        0 as u64,
     )
     .await
     .map_err(|e| format!("Failed to call ecdsa_public_key {}", e.1))?;
@@ -100,6 +99,53 @@ pub async fn create_address(principal_id: Principal) -> Result<CreateAddressResp
     });
 
     Ok(CreateAddressResponse { address })
+}
+
+pub async fn sign_msg(
+    msg_bytes: Vec<u8>,
+    chain_id: u64,
+    principal_id: Principal,
+) -> Result<String, String> {
+    let state = STATE.with(|s| s.borrow().clone());
+    let user;
+
+    if let Some(i) = state.users.get(&principal_id) {
+        user = i.clone();
+    } else {
+        return Err("this user does not exist".to_string());
+    }
+
+    let hash = easy_hasher::raw_keccak256(msg_bytes).to_vec();
+
+    let key_id = EcdsaKeyId {
+        curve: EcdsaCurve::Secp256k1,
+        name: state.config.key_name,
+    };
+
+    let caller = get_derivation_path(principal_id);
+
+    let request = SignWithECDSA {
+        message_hash: hash.clone(),
+        derivation_path: vec![caller],
+        key_id: key_id.clone(),
+    };
+
+    let (res,): (SignWithECDSAResponse,) = ic_call(
+        Principal::management_canister(),
+        "sign_with_ecdsa",
+        (request,),
+        state.config.sign_cycles,
+    )
+    .await
+    .map_err(|e| format!("Failed to call sign_with_ecdsa {}", e.1))?;
+
+    let signature = res.signature;
+    let (v, r, s) = gen_legacy_signature(chain_id, signature, user.public_key, hash);
+    assert_eq!(r.len(), 32);
+    assert_eq!(s.len(), 32);
+    let signature = vec![v, r, s].concat();
+    let signature_hex = "0x".to_string() + hex::encode(signature).as_str();
+    Ok(signature_hex)
 }
 
 pub async fn sign_transaction(
@@ -139,7 +185,7 @@ pub async fn sign_transaction(
         Principal::management_canister(),
         "sign_with_ecdsa",
         (request,),
-        state.config.sign_cycles
+        state.config.sign_cycles,
     )
     .await
     .map_err(|e| format!("Failed to call sign_with_ecdsa {}", e.1))?;

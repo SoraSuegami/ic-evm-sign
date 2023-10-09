@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "dfx": "0.13.1",
+  "output_env_file": ".env",
   "canisters": {
     "backend": {
       "type": "rust",

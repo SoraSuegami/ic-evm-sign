@@ -1,4 +1,4 @@
-use ic_cdk::export::candid::CandidType;
+use candid::CandidType;
 use ic_cdk_macros::*;
 use ic_evm_sign;
 use ic_evm_sign::state::{Environment, State, TransactionChainData, STATE};
@@ -26,7 +26,7 @@ fn init(evn_opt: Option<Environment>) {
     ic_evm_sign::init(evn_opt);
 }
 
-#[update]
+#[ic_cdk::update]
 async fn create_address() -> Result<CreateAddressResponse, String> {
     let principal_id = ic_cdk::caller();
 
@@ -40,7 +40,7 @@ async fn create_address() -> Result<CreateAddressResponse, String> {
     })
 }
 
-#[update]
+#[ic_cdk::update]
 async fn sign_evm_tx(
     hex_raw_tx: Vec<u8>,
     chain_id: u64,
@@ -56,7 +56,7 @@ async fn sign_evm_tx(
     })
 }
 
-#[update]
+#[ic_cdk::update]
 async fn deploy_evm_contract(
     bytecode: Vec<u8>,
     chain_id: u64,
@@ -80,7 +80,7 @@ async fn deploy_evm_contract(
     Ok(DeployEVMContractResponse { tx: res.tx })
 }
 
-#[update]
+#[ic_cdk::update]
 async fn transfer_erc_20(
     chain_id: u64,
     max_priority_fee_per_gas: u64,
@@ -108,7 +108,7 @@ async fn transfer_erc_20(
     Ok(DeployEVMContractResponse { tx: res.tx })
 }
 
-#[update]
+#[ic_cdk::update]
 fn clear_caller_history(chain_id: u64) -> Result<(), String> {
     let principal_id = ic_cdk::caller();
 
@@ -119,7 +119,7 @@ fn clear_caller_history(chain_id: u64) -> Result<(), String> {
     Ok(res)
 }
 
-#[query]
+#[ic_cdk::query]
 fn get_caller_data(chain_id: u64) -> Option<UserResponse> {
     let principal_id = ic_cdk::caller();
 

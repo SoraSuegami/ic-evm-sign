@@ -66,7 +66,7 @@ impl From<(Vec<u8>, u64)> for TransactionLegacy {
         let s_hex = rlp.at(8).as_val::<Vec<u8>>();
         let s = vec_u8_to_string(&s_hex);
 
-        let chain_id =data.1;
+        let chain_id = data.1;
 
         TransactionLegacy {
             chain_id,
@@ -111,23 +111,12 @@ impl Sign for TransactionLegacy {
     }
     fn sign(&mut self, signature: Vec<u8>, public_key: Vec<u8>) -> Result<Vec<u8>, String> {
         let chain_id = u64::try_from(self.chain_id).unwrap();
-
-        let r_remove_leading_zeros = remove_leading(signature[..32].to_vec(), 0);
-        let s_remove_leading_zeros = remove_leading(signature[32..].to_vec(), 0);
-
-        let r = vec_u8_to_string(&r_remove_leading_zeros);
-
-        let s = vec_u8_to_string(&s_remove_leading_zeros);
-
         let message = self.get_message_to_sign().unwrap();
-        let recovery_id = get_recovery_id(&message, &signature, &public_key).unwrap();
+        let (v, r, s) = gen_legacy_signature(chain_id, signature, public_key, message);
 
-        let v_number = chain_id * 2 + 35 + u64::try_from(recovery_id).unwrap();
-        let v = vec_u8_to_string(&u64_to_vec_u8(&v_number));
-
-        self.v = v;
-        self.r = r;
-        self.s = s;
+        self.v = vec_u8_to_string(&v);
+        self.r = vec_u8_to_string(&r);
+        self.s = vec_u8_to_string(&s);
 
         let result = self.serialize().unwrap();
         Ok(result)
@@ -618,7 +607,10 @@ pub fn get_transaction(hex_raw_tx: &Vec<u8>, chain_id: u64) -> Result<Box<dyn Si
     let tx_type = get_transaction_type(hex_raw_tx).unwrap();
 
     if tx_type == TransactionType::Legacy {
-        Ok(Box::new(TransactionLegacy::from((hex_raw_tx.clone(), chain_id))))
+        Ok(Box::new(TransactionLegacy::from((
+            hex_raw_tx.clone(),
+            chain_id,
+        ))))
     } else if tx_type == TransactionType::EIP1559 {
         Ok(Box::new(Transaction1559::from(hex_raw_tx.clone())))
     } else if tx_type == TransactionType::EIP2930 {
@@ -638,6 +630,20 @@ fn get_transaction_type(hex_raw_tx: &Vec<u8>) -> Result<TransactionType, String>
     } else {
         Err(String::from("Invalid type"))
     }
+}
+
+pub(crate) fn gen_legacy_signature(
+    chain_id: u64,
+    signature: Vec<u8>,
+    public_key: Vec<u8>,
+    message: Vec<u8>,
+) -> (Vec<u8>, Vec<u8>, Vec<u8>) {
+    let r = remove_leading(signature[..32].to_vec(), 0);
+    let s = remove_leading(signature[32..].to_vec(), 0);
+    let recovery_id = get_recovery_id(&message, &signature, &public_key).unwrap();
+    let v_number = chain_id * 2 + 35 + u64::try_from(recovery_id).unwrap();
+    let v = u64_to_vec_u8(&v_number);
+    (v, r, s)
 }
 
 fn get_recovery_id(
@@ -664,7 +670,8 @@ fn get_recovery_id(
         let message_bytes: [u8; 32] = message[..].try_into().unwrap();
         let message_bytes_32 = libsecp256k1::Message::parse(&message_bytes);
 
-        let key = libsecp256k1::recover(&message_bytes_32, &signature_bytes_64, &recovery_id).unwrap();
+        let key =
+            libsecp256k1::recover(&message_bytes_32, &signature_bytes_64, &recovery_id).unwrap();
         if key.serialize_compressed() == public_key[..] {
             return Ok(i as u8);
         }
@@ -717,9 +724,11 @@ mod tests {
     fn get_recovery_id_valid() {
         let expected = 0;
 
-        let public_key = string_to_vec_u8("02c397f23149d3464517d57b7cdc8e287428407f9beabfac731e7c24d536266cd1");
+        let public_key =
+            string_to_vec_u8("02c397f23149d3464517d57b7cdc8e287428407f9beabfac731e7c24d536266cd1");
         let signature =string_to_vec_u8("29edd4e1d65e1b778b464112d2febc6e97bb677aba5034408fd27b49921beca94c4e5b904d58553bcd9c788360e0bd55c513922cf1f33a6386033e886cd4f77f");
-        let message = string_to_vec_u8("79965df63d7d9364f4bc8ed54ffd1c267042d4db673e129e3c459afbcb73a6f1");
+        let message =
+            string_to_vec_u8("79965df63d7d9364f4bc8ed54ffd1c267042d4db673e129e3c459afbcb73a6f1");
         let result = get_recovery_id(&message, &signature, &public_key).unwrap();
         assert_eq!(result, expected);
     }
@@ -728,9 +737,11 @@ mod tests {
     fn get_recovery_id_with_invalid_signature() {
         let expected = Err("Invalid signature".to_string());
 
-        let public_key = string_to_vec_u8("02c397f23149d3464517d57b7cdc8e287428407f9beabfac731e7c24d536266cd1");
+        let public_key =
+            string_to_vec_u8("02c397f23149d3464517d57b7cdc8e287428407f9beabfac731e7c24d536266cd1");
         let signature = string_to_vec_u8("");
-        let message = string_to_vec_u8("79965df63d7d9364f4bc8ed54ffd1c267042d4db673e129e3c459afbcb73a6f1");
+        let message =
+            string_to_vec_u8("79965df63d7d9364f4bc8ed54ffd1c267042d4db673e129e3c459afbcb73a6f1");
         let result = get_recovery_id(&message, &signature, &public_key);
         assert_eq!(result, expected);
     }
@@ -739,7 +750,8 @@ mod tests {
     fn get_recovery_id_with_invalid_message() {
         let expected = Err("Invalid message".to_string());
 
-        let public_key = string_to_vec_u8("02c397f23149d3464517d57b7cdc8e287428407f9beabfac731e7c24d536266cd1");
+        let public_key =
+            string_to_vec_u8("02c397f23149d3464517d57b7cdc8e287428407f9beabfac731e7c24d536266cd1");
         let signature = string_to_vec_u8("29edd4e1d65e1b778b464112d2febc6e97bb677aba5034408fd27b49921beca94c4e5b904d58553bcd9c788360e0bd55c513922cf1f33a6386033e886cd4f77f");
         let message = string_to_vec_u8("");
         let result = get_recovery_id(&message, &signature, &public_key);
@@ -752,7 +764,8 @@ mod tests {
 
         let public_key = string_to_vec_u8("");
         let signature = string_to_vec_u8("29edd4e1d65e1b778b464112d2febc6e97bb677aba5034408fd27b49921beca94c4e5b904d58553bcd9c788360e0bd55c513922cf1f33a6386033e886cd4f77f");
-        let message = string_to_vec_u8("79965df63d7d9364f4bc8ed54ffd1c267042d4db673e129e3c459afbcb73a6f1");
+        let message =
+            string_to_vec_u8("79965df63d7d9364f4bc8ed54ffd1c267042d4db673e129e3c459afbcb73a6f1");
         let result = get_recovery_id(&message, &signature, &public_key);
         assert_eq!(result, expected);
     }

@@ -3,10 +3,10 @@ use crate::ecdsa::request::SignWithECDSA;
 use crate::utils::string_to_vec_u8;
 use candid::de::IDLDeserialize;
 use candid::utils::{ArgumentDecoder, ArgumentEncoder};
+use candid::Principal;
 use candid::{Decode, Encode};
 use ic_cdk::api::call::{CallResult, RejectionCode};
-use ic_cdk::export::Principal;
-use libsecp256k1_test::{PublicKey, SecretKey};
+use libsecp256k1::{PublicKey, SecretKey};
 use std::cell::RefCell;
 use std::future::Future;
 
@@ -35,11 +35,14 @@ pub fn ic_call<T: ArgumentEncoder, R: for<'a> ArgumentDecoder<'a>>(
         if method == "ecdsa_public_key" {
             let private_key_state = STATE_TEST.with(|s| {
                 let mut state = s.borrow_mut();
-                state.private_key = String::from("5c86d3784f39013aa50aada6d97f9bad733636d57bf6bb18b0bca1ffcff374b4");
+                state.private_key = String::from(
+                    "5c86d3784f39013aa50aada6d97f9bad733636d57bf6bb18b0bca1ffcff374b4",
+                );
                 state.private_key.clone()
             });
 
-            let private_key = SecretKey::parse_slice(&string_to_vec_u8(&private_key_state)).unwrap();
+            let private_key =
+                SecretKey::parse_slice(&string_to_vec_u8(&private_key_state)).unwrap();
 
             let public_key = PublicKey::from_secret_key(&private_key).serialize_compressed();
 
@@ -63,9 +66,9 @@ pub fn ic_call<T: ArgumentEncoder, R: for<'a> ArgumentDecoder<'a>>(
 
             let message: [u8; 32] = args.message_hash[..32].try_into().unwrap();
 
-            let message_parsed = libsecp256k1_test::Message::parse(&message);
+            let message_parsed = libsecp256k1::Message::parse(&message);
 
-            let signature = libsecp256k1_test::sign(&message_parsed, &private_key);
+            let signature = libsecp256k1::sign(&message_parsed, &private_key);
 
             let res = SignWithECDSAResponse {
                 signature: signature.0.serialize().to_vec(),
