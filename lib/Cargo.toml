@@ -22,6 +22,7 @@ libsecp256k1 = { version = "0.7.1", package = "libsecp256k1", default-features =
 ] }
 futures = "0.3.25"
 hex = "0.4.3"
+getrandom = { version = "0.2", features = ["custom"] }
 
 [dev-dependencies]
 libsecp256k1 = { version = "0.7.1", package = "libsecp256k1" }

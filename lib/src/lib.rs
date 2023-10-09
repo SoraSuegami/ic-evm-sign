@@ -368,5 +368,18 @@ pub fn post_upgrade() {
         *s.borrow_mut() = s_prev;
     });
 }
+
+// In the following, we register a custom getrandom implementation because
+// otherwise getrandom (which is a dependency of k256) fails to compile.
+// This is necessary because getrandom by default fails to compile for the
+// wasm32-unknown-unknown target (which is required for deploying a canister).
+// Our custom implementation always fails, which is sufficient here because
+// we only use the k256 crate for verifying secp256k1 signatures, and such
+// signature verification does not require any randomness.
+getrandom::register_custom_getrandom!(always_fail);
+pub fn always_fail(_buf: &mut [u8]) -> Result<(), getrandom::Error> {
+    Err(getrandom::Error::UNSUPPORTED)
+}
+
 #[cfg(test)]
 mod tests;
