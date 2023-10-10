@@ -114,8 +114,14 @@ pub async fn sign_msg(
     } else {
         return Err("this user does not exist".to_string());
     }
-
-    let hash = easy_hasher::raw_keccak256(msg_bytes).to_vec();
+    const PREFIX: &str = "\x19Ethereum Signed Message:\n";
+    let len = msg_bytes.len();
+    let len_string = len.to_string();
+    let mut eth_message = Vec::with_capacity(PREFIX.len() + len_string.len() + len);
+    eth_message.extend_from_slice(PREFIX.as_bytes());
+    eth_message.extend_from_slice(len_string.as_bytes());
+    eth_message.extend_from_slice(&msg_bytes);
+    let hash = easy_hasher::raw_keccak256(eth_message).to_vec();
 
     let key_id = EcdsaKeyId {
         curve: EcdsaCurve::Secp256k1,
