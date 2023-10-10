@@ -143,7 +143,7 @@ pub async fn sign_msg(
     let (v, r, s) = gen_legacy_signature(chain_id, signature, user.public_key, hash);
     assert_eq!(r.len(), 32);
     assert_eq!(s.len(), 32);
-    let signature = vec![v, r, s].concat();
+    let signature = vec![r, s, v].concat();
     let signature_hex = "0x".to_string() + hex::encode(signature).as_str();
     Ok(signature_hex)
 }
