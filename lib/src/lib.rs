@@ -101,11 +101,7 @@ pub async fn create_address(principal_id: Principal) -> Result<CreateAddressResp
     Ok(CreateAddressResponse { address })
 }
 
-pub async fn sign_msg(
-    msg_bytes: Vec<u8>,
-    chain_id: u64,
-    principal_id: Principal,
-) -> Result<String, String> {
+pub async fn sign_msg(msg_bytes: Vec<u8>, principal_id: Principal) -> Result<String, String> {
     let state = STATE.with(|s| s.borrow().clone());
     let user;
 
@@ -146,7 +142,7 @@ pub async fn sign_msg(
     .map_err(|e| format!("Failed to call sign_with_ecdsa {}", e.1))?;
 
     let signature = res.signature;
-    let (v, r, s) = gen_legacy_signature(chain_id, signature, user.public_key, hash);
+    let (v, r, s) = gen_signature_without_chain_id(signature, user.public_key, hash);
     assert_eq!(r.len(), 32);
     assert_eq!(s.len(), 32);
     let signature = vec![r, s, v].concat();

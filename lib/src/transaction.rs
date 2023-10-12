@@ -112,7 +112,11 @@ impl Sign for TransactionLegacy {
     fn sign(&mut self, signature: Vec<u8>, public_key: Vec<u8>) -> Result<Vec<u8>, String> {
         let chain_id = u64::try_from(self.chain_id).unwrap();
         let message = self.get_message_to_sign().unwrap();
-        let (v, r, s) = gen_legacy_signature(chain_id, signature, public_key, message);
+        let r = remove_leading(signature[..32].to_vec(), 0);
+        let s = remove_leading(signature[32..].to_vec(), 0);
+        let recovery_id = get_recovery_id(&message, &signature, &public_key).unwrap();
+        let v_number = chain_id * 2 + 35 + u64::try_from(recovery_id).unwrap();
+        let v = u64_to_vec_u8(&v_number);
 
         self.v = vec_u8_to_string(&v);
         self.r = vec_u8_to_string(&r);
@@ -632,8 +636,7 @@ fn get_transaction_type(hex_raw_tx: &Vec<u8>) -> Result<TransactionType, String>
     }
 }
 
-pub(crate) fn gen_legacy_signature(
-    chain_id: u64,
+pub(crate) fn gen_signature_without_chain_id(
     signature: Vec<u8>,
     public_key: Vec<u8>,
     message: Vec<u8>,
@@ -641,7 +644,8 @@ pub(crate) fn gen_legacy_signature(
     let r = remove_leading(signature[..32].to_vec(), 0);
     let s = remove_leading(signature[32..].to_vec(), 0);
     let recovery_id = get_recovery_id(&message, &signature, &public_key).unwrap();
-    let v_number = chain_id * 2 + 35 + u64::try_from(recovery_id).unwrap();
+    assert!(recovery_id == 0 || recovery_id == 1, "invalid recovery_id");
+    let v_number = 27 + u64::try_from(recovery_id).unwrap();
     let v = u64_to_vec_u8(&v_number);
     (v, r, s)
 }
