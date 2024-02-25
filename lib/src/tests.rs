@@ -2,6 +2,7 @@ use super::*;
 use crate::transaction::Sign;
 use crate::utils::{string_to_vec_u8, vec_u8_to_string};
 use candid::Principal;
+#[cfg(test)]
 use futures::executor::block_on;
 
 #[test]
