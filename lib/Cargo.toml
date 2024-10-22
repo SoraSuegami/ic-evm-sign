@@ -1,6 +1,6 @@
 [package]
 name = "ic-evm-sign"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2021"
 description = "This library enables Internet Computer canisters to sign transactions for EVM-compatible blockchains"
 license = "Apache-2.0"
@@ -8,8 +8,8 @@ readme = "../README.md"
 documentation = "https://docs.rs/ic-evm-sign"
 
 [dependencies]
-candid = "0.10.0"
-ic-cdk = "0.12.1"
+candid = "0.10.10"
+ic-cdk = "0.16.0"
 serde = "1"
 primitive-types = { version = "0.12.1", default-features = false, features = [
     "byteorder",
