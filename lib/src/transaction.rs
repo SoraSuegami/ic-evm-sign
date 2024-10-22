@@ -637,7 +637,7 @@ fn get_transaction_type(hex_raw_tx: &Vec<u8>) -> Result<TransactionType, String>
 }
 
 pub(crate) fn gen_signature_without_chain_id(
-    signature: Vec<u8>,
+    signature: &[u8],
     public_key: Vec<u8>,
     message: Vec<u8>,
 ) -> (Vec<u8>, Vec<u8>, Vec<u8>) {
@@ -650,11 +650,7 @@ pub(crate) fn gen_signature_without_chain_id(
     (v, r, s)
 }
 
-fn get_recovery_id(
-    message: &Vec<u8>,
-    signature: &Vec<u8>,
-    public_key: &Vec<u8>,
-) -> Result<u8, String> {
+fn get_recovery_id(message: &[u8], signature: &[u8], public_key: &[u8]) -> Result<u8, String> {
     if signature.len() != 64 {
         return Err("Invalid signature".to_string());
     }

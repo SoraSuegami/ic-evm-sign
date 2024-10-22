@@ -142,10 +142,10 @@ pub async fn sign_msg(msg_bytes: Vec<u8>, principal_id: Principal) -> Result<Str
     .map_err(|e| format!("Failed to call sign_with_ecdsa {}", e.1))?;
 
     let signature = res.signature;
-    let (v, r, s) = gen_signature_without_chain_id(signature, user.public_key, hash);
-    assert_eq!(r.len(), 32);
-    assert_eq!(s.len(), 32);
-    let signature = vec![r, s, v].concat();
+    let (v, _, _) = gen_signature_without_chain_id(&signature, user.public_key, hash);
+    // assert_eq!(r.len(), 32);
+    // assert_eq!(s.len(), 32);
+    let signature = vec![&signature[..64], &v].concat();
     let signature_hex = "0x".to_string() + hex::encode(signature).as_str();
     Ok(signature_hex)
 }
