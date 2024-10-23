@@ -15,7 +15,7 @@ use easy_hasher::easy_hasher;
 use hex;
 use primitive_types::U256;
 pub use utils::u64_to_u256;
-use utils::{get_address_from_public_key, get_derivation_path};
+pub use utils::{get_address_from_public_key, get_derivation_path};
 
 mod ecdsa;
 use ecdsa::reply::*;
